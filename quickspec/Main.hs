@@ -21,27 +21,22 @@ ordinals =
   , con "*" ((*) @Ordinal)
   , con "0" (0 :: Ordinal)
   , con "1" (1 :: Ordinal)
-  --, con "2" (2 :: Ordinal)
   , con "w" w
+  , con "min" (min @Ordinal)
+  --, con "max" (max @Ordinal)
   --, predicate "finite" finite
-  --, predicate "positive" ((>0) :: Ordinal -> Bool)
   , monoType (Proxy :: Proxy Ordinal)
   , background [ con "&&" (&&)
                , con "True" True
                , con "False" False ]
   ]
 
-instance Ord a => Observe Ordinal [a] (Arr Ordinal a) where
+instance Ord a => Observe [Ordinal] [a] (Arr Ordinal a) where
   observe inp xs
     | finite (size xs) =
       let sz = finitePart (size xs)
       in if sz == 0 then [] else [ xs ! (N i) | i <- [0 .. sz - 1] ]
-    | inp >= size xs = []
-    | otherwise      = [xs ! inp]
-
-prop :: Ordinal -> Blind (Arr Ordinal Int) -> Property
-prop inp (Blind xs) =
-  whenFail (print (size xs)) $ observe inp (append xs empty) == observe inp xs
+    | otherwise = [xs ! i | i <- inp, i < size xs]
 
 arrays = 
   [ background ordinals
@@ -56,7 +51,7 @@ arrays =
   , con "take" (take   :: Ordinal -> Arr Ordinal A -> Arr Ordinal A)
   , con "size" (size   :: Arr Ordinal A -> Ordinal)
   , inst (Sub Dict :: Arbitrary A :- Arbitrary (Arr Ordinal A))
-  , inst (Sub Dict :: Ord A :- Observe Ordinal [A] (Arr Ordinal A))
+  , inst (Sub Dict :: Ord A :- Observe [Ordinal] [A] (Arr Ordinal A))
   , monoType (Proxy :: Proxy Natural)
   ]
 
