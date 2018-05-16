@@ -1,0 +1,7 @@
+flags: {}
+packages:
+- .
+extra-deps:
+- quickspec-2
+- twee-lib-2.1.2
+resolver: lts-11.9
