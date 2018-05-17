@@ -10,13 +10,6 @@ import Test.QuickCheck.Instances
 import Data.Ord
 import Numeric.Natural
 
-{- Properties of the ordinals -}
-prop_add_assoc :: Ordinal -> Ordinal -> Ordinal -> Bool
-prop_add_assoc a b c = a + (b + c) == (a + b) + c
-
-prop_mul_assoc :: Ordinal -> Ordinal -> Ordinal -> Bool
-prop_mul_assoc a b c = a * (b * c) == (a * b) * c
-
 {- Definitions -}
 
 data Ordinal = N { finPa :: Natural }

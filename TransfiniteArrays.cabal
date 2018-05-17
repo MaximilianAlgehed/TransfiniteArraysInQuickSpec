@@ -35,6 +35,18 @@ executable quickspec
   ghc-options: -rtsopts
   default-language: Haskell2010
 
+Test-Suite Ordinals
+    type:
+      exitcode-stdio-1.0
+    hs-source-dirs:
+      test
+    main-is:
+      Ordinals.hs
+    build-depends:
+        base
+      , QuickCheck
+      , TransfiniteArrays
+
 source-repository head
   type:     git
   location: https://github.com/MaximilianAlgehed/TransfiniteArrays
