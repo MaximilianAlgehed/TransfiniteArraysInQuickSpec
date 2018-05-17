@@ -25,6 +25,9 @@ prop_mul_left_absorption n = 0 < n && n < w ==> n * w == w
 prop_mul_right_monotonicity :: Ordinal -> Ordinal -> Ordinal -> Property
 prop_mul_right_monotonicity a b c = 0 < a && b < c ==> a * b < a * c
 
+prop_mul_left_distributivity :: Ordinal -> Ordinal -> Ordinal -> Bool
+prop_mul_left_distributivity a b c = a * (b + c) == a * b + a * c
+
 prop_finite :: Ordinal -> Bool
 prop_finite a = (a < w) == finite a
 

@@ -1,8 +1,9 @@
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass, RankNTypes #-}
 module CantorNormalForm where
 
 import Prelude hiding (pred)
 
+import GHC.Stack
 import GHC.Generics
 import Data.List
 import Test.QuickCheck
@@ -15,8 +16,12 @@ import Numeric.Natural
 data Ordinal = N { finPa :: Natural }
              | O { expo  :: Ordinal
                  , coeff :: Natural
-                 , rst   :: Ordinal }
+                 , rst_  :: Ordinal }
              deriving (Eq, Generic, CoArbitrary)
+
+rst :: HasCallStack => Ordinal -> Ordinal
+rst (N _) = error "rst applied badly!"
+rst o = rst_ o
 
 instance Show Ordinal where
   show (N a) = show a
@@ -40,23 +45,27 @@ instance Arbitrary Ordinal where
         p      <- N <$> arbitrary
         return $ foldr (\(a, x) rst -> O a x rst) p (zip alphas xs)), (1, N <$> arbitrary)]
 
-w :: Ordinal
+  shrink (N n) = N <$> shrink n
+  shrink (O expo coeff rst) = [rst] ++ shrink rst ++ [ O expo c rst | c <- shrink coeff, c > 0 ]
+                            ++ [ O e coeff rst | e <- shrink expo, e > fe rst ]
+
+w :: HasCallStack => Ordinal
 w = O 1 1 (N 0)
 
-len :: Ordinal -> Natural
+len :: HasCallStack => Ordinal -> Natural
 len o = if finite o then 0 else 1 + len (rst o)
 
-finite :: Ordinal -> Bool
+finite :: HasCallStack => Ordinal -> Bool
 finite (N _) = True
 finite _     = False
 
-finitePart :: Ordinal -> Natural
+finitePart :: HasCallStack => Ordinal -> Natural
 finitePart o = if finite o then finPa o else finitePart (rst o)
 
-fe :: Ordinal -> Ordinal
+fe :: HasCallStack => Ordinal -> Ordinal
 fe o = if finite o then 0 else expo o 
 
-fco :: Ordinal -> Natural
+fco :: HasCallStack => Ordinal -> Natural
 fco o = if finite o then finitePart o else coeff o
 
 instance Ord Ordinal where
@@ -69,60 +78,16 @@ instance Ord Ordinal where
     | otherwise            = compare (rst a) (rst b)
 
 {- Exponentiation -}
-pow1 :: Natural -> Ordinal -> Ordinal
-pow1 k a
-  | fe a == 1      = O (N $ fco a) (k ^ finitePart a) 0
-  | finite (rst a) = O (O (fe a - 1) (fco a) 0) (k ^ finitePart a) 0
-  | otherwise      = O (O (fe a - 1) 1 (fe c)) (fco c) 0
-                     where c = pow1 k (rst a)
-
-pred :: Natural -> Natural
+pred :: HasCallStack => Natural -> Natural
 pred n = if n == 0 then 0 else n - 1
 
--- Raising a limit ordinal to a power
-pow2 :: Ordinal -> Natural -> Ordinal
-pow2 a k
-  | k == 0 = 1
-  | otherwise = a * pow2 a (pred k)
-
-limitPart :: Ordinal -> Ordinal
+limitPart :: HasCallStack => Ordinal -> Ordinal
 limitPart a
   | finite a  = 0
   | otherwise = O (fe a) (fco a) (limitPart (rst a))
 
-limitOrdinal :: Ordinal -> Bool
+limitOrdinal :: HasCallStack => Ordinal -> Bool
 limitOrdinal a = not (finite a) && finitePart a == 0
-
-padd :: Ordinal -> Ordinal -> Natural -> Ordinal
-padd a b n
-  | n == 0 = a + b
-  | otherwise = O (fe a) (fco a) (padd (rst a) b (pred n))
-
-pow3h :: Ordinal -> Ordinal -> Natural -> Natural -> Ordinal
-pow3h a p n k
-  | k == 1 = (a * p) + p
-  | otherwise = padd (pow2 a k * p) (pow3h a p n (pred k)) n
-
-pow3 :: Ordinal -> Natural -> Ordinal
-pow3 a k
-  | k == 1          = a
-  | limitOrdinal a  = pow2 a k
-  | otherwise       = padd (pow2 c k) (pow3h c (N (finitePart a)) n (pred k)) n
-                      where
-                        c = limitPart a
-                        n = len a
-
-pow4 :: Ordinal -> Ordinal -> Ordinal
-pow4 a b = (O (fe a * limitPart b) 1 0) * pow3 a (finitePart b)
-
-(^.) :: Ordinal -> Ordinal -> Ordinal
-a ^. b
-  | b == 0 || a == 1 = 1
-  | a == 0           = 0
-  | finite a && finite b = N (finitePart a ^ finitePart b)
-  | finite a             = pow1 (finitePart a) b
-  | finite b             = pow3 a (finitePart b)
-  | otherwise            = pow4 a b
 
 instance Num Ordinal where
   a + b
